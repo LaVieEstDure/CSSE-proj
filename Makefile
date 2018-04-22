@@ -10,7 +10,7 @@
 DEVICE=atmega324a
 PROGRAMMER=-c stk500v2
 PORT=-P $(shell pavr2cmd --prog-port)
-AVRDUDE=sudo avrdude $(PROGRAMMER) $(PORT) -p m324pa -F
+AVRDUDE=sudo avrdude $(PROGRAMMER) $(PORT) -p m324a
 CFLAGS=-g -Os -Wall -mcall-prologues -std=gnu99 -mmcu=$(DEVICE)
 LDFLAGS=-gc-sections -Wl,-relax
 CC=avr-gcc
