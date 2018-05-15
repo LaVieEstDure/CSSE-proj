@@ -12,17 +12,22 @@ PROGRAMMER=-c stk500v2
 PORT=-P $(shell pavr2cmd --prog-port)
 AVRDUDE=sudo avrdude $(PROGRAMMER) $(PORT) -p m324a
 CFLAGS=-g -Os -Wall -mcall-prologues -std=gnu99 -mmcu=$(DEVICE)
-LDFLAGS=-gc-sections -Wl,-relax
+LDFLAGS= -gc-sections -Wl,-relax
 CC=avr-gcc
-OBJ=project.o
+SRC := src
+OBJ := obj
+
+SOURCES := $(wildcard $(SRC)/*.c)
+OBJECTS := $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))
+
+$(OBJ)/%.o: $(SRC)/%.c
+	mkdir -p obj
+	$(CC) -I$(SRC) -c $< -o $@ $(CFLAGS) 
+
+project.elf: $(OBJECTS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJECTS) -o project.elf 
 
 all: project.hex
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-project.elf: $(OBJ)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJ) -o project.elf 
 
 disasm:	project.elf
 	avr-objdump -d project.elf
@@ -34,4 +39,5 @@ flash: all
 	$(AVRDUDE) -U flash:w:project.hex:i
 
 clean:
-	rm -f project.o project.elf project.hex
+	rm -f project.elf project.hex
+	rm -rf obj
