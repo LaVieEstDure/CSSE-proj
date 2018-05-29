@@ -7,7 +7,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include "buttons.h"
-
 // Global variable to keep track of the last button state so that we 
 // can detect changes when an interrupt fires. The lower 4 bits (0 to 3)
 // will correspond to the last state of port B pins 0 to 3.

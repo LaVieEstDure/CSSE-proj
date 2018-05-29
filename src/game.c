@@ -1,4 +1,3 @@
-
 #include "game.h"
 #include "ledmatrix.h"
 #include "pixel_colour.h"
@@ -6,6 +5,7 @@
 #include "score.h"
 #include <stdint.h>
 #include "helpers.h"
+#include "timer0.h"
 ///////////////////////////////// Global variables //////////////////////
 // frog_row and frog_column store the current position of the frog. Row 
 // numbers are from 0 to 7; column numbers are from 0 to 15. 
@@ -52,7 +52,7 @@ static int8_t log_position[2];
 #define COLOUR_EDGES		COLOUR_LIGHT_GREEN
 #define COLOUR_WATER		COLOUR_BLACK
 #define COLOUR_ROAD			COLOUR_BLACK
-#define COLOUR_LOGS			COLOUR_ORANGE
+static PixelColour log_colour = COLOUR_ORANGE; 
 PixelColour vehicle_colours[3] = { COLOUR_RED, COLOUR_YELLOW, COLOUR_RED }; // by lane
 
 // Rows
@@ -181,7 +181,7 @@ uint8_t is_frog_dead(void) {
 	return frog_dead;
 }
 
-void resurrect_frog(){
+void resurrect_frog(void){
 	frog_dead = 0;
 }
 
@@ -246,6 +246,40 @@ void scroll_river_channel(uint8_t channel, int8_t direction) {
 	// If the frog is in this row, put them on the log
 	if(frog_is_in_this_row) {
 		redraw_frog();
+	}
+}
+
+void reset_riverbank(void){
+	riverbank_status = RIVERBANK;
+	redraw_riverbank();
+}
+
+void scroll_out(void){
+	uint32_t current_time;
+	uint32_t last_time;
+
+	current_time =  get_current_time();
+	last_time = current_time;
+
+	for(int i=0; i <= 16;){
+		current_time = get_current_time();
+		if(current_time > last_time + 100){
+			i++;
+			ledmatrix_shift_display_left();
+			last_time = current_time;
+		}
+	}
+}
+
+void remix_colours(void){
+	PixelColour temp = vehicle_colours[0];
+	vehicle_colours[0] = vehicle_colours[1];
+	vehicle_colours[1] = vehicle_colours[2];
+	vehicle_colours[2] = temp;
+	if(log_colour == COLOUR_ORANGE){
+		log_colour = COLOUR_LIGHT_YELLOW;
+	} else {
+		log_colour = COLOUR_ORANGE;
 	}
 }
 
@@ -352,6 +386,12 @@ static void redraw_roadside(uint8_t row) {
 	ledmatrix_update_row(row, row_display_data);
 }
 
+void redraw_roads(void){
+	for(int i=0; i<5; i++){
+		redraw_roadside(i);
+	}
+}
+
 // Redraw the given traffic lane (0, 1, 2). The frog is not redrawn.
 static void redraw_traffic_lane(uint8_t lane) {
 	MatrixRow row_display_data;
@@ -379,7 +419,7 @@ static void redraw_river_channel(uint8_t channel) {
 	uint8_t bit_position = log_position[channel];
 	for(i=0; i<=15; i++) {
 		if((log_data[channel] >> bit_position) & 1) {
-			row_display_data[i] = COLOUR_LOGS;
+			row_display_data[i] = log_colour;
 			} else {
 			row_display_data[i] = COLOUR_WATER;
 		}

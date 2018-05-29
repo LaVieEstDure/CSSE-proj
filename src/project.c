@@ -118,15 +118,34 @@ void play_game(void) {
 	uint32_t move_delays[5] = {750, 850, 1300, 1000, 1100};
 
 	int lives = 3;
-	int level_speed_offset = 0;
-
+	int8_t level = 1;
+	move_cursor(15, 0);
+	printf_P(PSTR("LEVEL: %d"), level);
 	display_lives(lives);
 	move_cursor(0, 24);
 	printf_P(PSTR("LIVES: %d"), lives);
 	// We play the game while the frog is alive and we haven't filled up the 
 	// far riverbank
+	while(!is_frog_dead() && lives) {
+		if(is_riverbank_full()){
+			level++;
+			if(lives < 5){
+				lives++;
+				display_lives(lives);
+			}
+			move_cursor(15, 0);
+			printf_P(PSTR("LEVEL: %d"), level);
+			scroll_out();
+			resurrect_frog();			
+			for(int i=0;i<5; i++){
+				move_delays[i] = move_delays[i] -  move_delays[i] / 30;
+			}
+			remix_colours();
+			redraw_roads();
+			put_frog_in_start_position();
+			reset_riverbank();
+		}
 
-	while(!is_frog_dead() && !is_riverbank_full() && lives) {
 		if(!is_frog_dead() && frog_has_reached_riverbank()) {
 			// Frog reached the other side successfully but the
 			// riverbank isn't full, put a new frog at the start
@@ -173,22 +192,24 @@ void play_game(void) {
 				}
 			}
 		}
-		
-		// Process the input. 
-		if(button==3 || escape_sequence_char=='D' || serial_input=='L' || serial_input=='l') {
-			// Attempt to move left
-			move_frog_to_left();
-		} else if(button==2 || escape_sequence_char=='A' || serial_input=='U' || serial_input=='u') {
-			// Attempt to move forward
-			move_frog_forward();
-		} else if(button==1 || escape_sequence_char=='B' || serial_input=='D' || serial_input=='d') {
-			// Attempt to move down
-			move_frog_backward();
-		} else if(button==0 || escape_sequence_char=='C' || serial_input=='R' || serial_input=='r') {
-			// Attempt to move right
-			move_frog_to_right();
-		} else if(serial_input == 'p' || serial_input == 'P') {
-			pause();
+		if(!paused){
+			// Process the input. 
+			if(button==3 || escape_sequence_char=='D' || serial_input=='L' || serial_input=='l') {
+				// Attempt to move left
+				move_frog_to_left();
+			} else if(button==2 || escape_sequence_char=='A' || serial_input=='U' || serial_input=='u') {
+				// Attempt to move forward
+				move_frog_forward();
+			} else if(button==1 || escape_sequence_char=='B' || serial_input=='D' || serial_input=='d') {
+				// Attempt to move down
+				move_frog_backward();
+			} else if(button==0 || escape_sequence_char=='C' || serial_input=='R' || serial_input=='r') {
+				// Attempt to move right
+				move_frog_to_right();
+			}
+		}
+		if(serial_input == 'p' || serial_input == 'P') {
+			remix_colours();
 		} 
 		// else - invalid input or we're part way through an escape sequence -
 		// do nothing
@@ -205,7 +226,7 @@ void play_game(void) {
 
 		if(!is_frog_dead()){
 			for(int i=0; i<5; i++){
-				if(current_time >=last_move_times[i] + move_delays[i] - level_speed_offset){
+				if(current_time >=last_move_times[i] + move_delays[i]){
 					if(i<3){
 						scroll_vehicle_lane(i, pow(-1,i));
 						last_move_times[i] = current_time;
@@ -225,8 +246,9 @@ void play_game(void) {
 			move_cursor(0, 24);
 			printf_P(PSTR("LIVES: %d"), lives);
 		}
+
 	}
-	// We get here if the frog is dead or the riverbank is full
+	// We get here if the riverbank is full
 	// The game is over.
 }
 
