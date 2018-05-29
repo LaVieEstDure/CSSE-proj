@@ -1,14 +1,11 @@
-/*
- * game.c
- *
- * Author: Peter Sutton
- */ 
 
 #include "game.h"
 #include "ledmatrix.h"
 #include "pixel_colour.h"
+#include <avr/io.h>
+#include "score.h"
 #include <stdint.h>
-
+#include "helpers.h"
 ///////////////////////////////// Global variables //////////////////////
 // frog_row and frog_column store the current position of the frog. Row 
 // numbers are from 0 to 7; column numbers are from 0 to 15. 
@@ -135,27 +132,33 @@ void move_frog_forward(void) {
 	// We do this whether the frog is alive or not. 
 	frog_row++;
 	redraw_frog();
-	
+	update_score(1);
 	// If the frog has ended up successfully in row 7 - add it to the riverbank_status flag
 	if(!frog_dead && frog_row == RIVERBANK_ROW) {
 		riverbank_status |= (1<<frog_column);
+		update_score(10);
 	}
 }
 
 void move_frog_backward(void) {
-	// Unimplemented
+	redraw_row(frog_row);
+	frog_dead = will_frog_die_at_position(frog_row-1, frog_column);
+	frog_row--;
+	redraw_frog();
 }
 
 void move_frog_to_left(void) {
-	// Unimplemented
-	// Comments to aid implementation:
-	// Redraw the row the frog is currently on (i.e. without the frog), check 
-	// whether the frog will live or not, update the frog position (if the position 
-	// is not the leftmost column) then and redraw the frog.
+	redraw_row(frog_row);
+	frog_dead = will_frog_die_at_position(frog_row, frog_column-1);
+	frog_column--;
+	redraw_frog();
 }
 
 void move_frog_to_right(void) {
-	// Unimplemented
+	redraw_row(frog_row);
+	frog_dead = will_frog_die_at_position(frog_row, frog_column+1);
+	frog_column++;
+	redraw_frog();
 }
 
 uint8_t get_frog_row(void) {
@@ -178,6 +181,10 @@ uint8_t is_frog_dead(void) {
 	return frog_dead;
 }
 
+void resurrect_frog(){
+	frog_dead = 0;
+}
+
 // Scroll the given lane of traffic. (lane value must be 0 to 2)
 void scroll_vehicle_lane(uint8_t lane, int8_t direction) {
 	uint8_t frog_is_in_this_row = (frog_row == lane + FIRST_VEHICLE_ROW);
@@ -194,13 +201,14 @@ void scroll_vehicle_lane(uint8_t lane, int8_t direction) {
 	}
 	// Update whether the frog will be alive or not. (The frog hasn't moved but
 	// it may have been hit by a vehicle.)
-	frog_dead = will_frog_die_at_position(frog_row, frog_column);
+	
 	
 	// Show the lane on the display
 	redraw_traffic_lane(lane);
 	
 	// If the frog is in this row, show it
 	if(frog_is_in_this_row) {
+		frog_dead = will_frog_die_at_position(frog_row, frog_column);
 		redraw_frog();
 	}
 }

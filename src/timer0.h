@@ -17,14 +17,15 @@
 
 #ifndef TIMER0_H_
 #define TIMER0_H_
-
 #include <stdint.h>
+typedef int8_t bool;
 
 /* Set up our timer to give us an interrupt every millisecond
  * and update our time reference.
  */
 void init_timer0(void);
-
+void toggle_pause(void);
+bool paused;
 /* Return the current clock tick value - milliseconds since the timer was
  * initialised.
  */

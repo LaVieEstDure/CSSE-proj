@@ -10,7 +10,8 @@
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <stdio.h>
-
+#include <math.h>
+#include "helpers.h"
 #include "ledmatrix.h"
 #include "scrolling_char_display.h"
 #include "buttons.h"
@@ -19,7 +20,6 @@
 #include "score.h"
 #include "timer0.h"
 #include "game.h"
-
 #define F_CPU 8000000L
 #include <util/delay.h>
 
@@ -59,7 +59,6 @@ void initialise_hardware(void) {
 	init_serial_stdio(19200,0);
 	
 	init_timer0();
-	
 	// Turn on global interrupts
 	sei();
 }
@@ -70,13 +69,14 @@ void splash_screen(void) {
 	move_cursor(10,10);
 	printf_P(PSTR("Frogger"));
 	move_cursor(10,12);
-	printf_P(PSTR("CSSE2010/7201 project by <your name here>"));
-	
+	printf_P(PSTR("CSSE2010 project by Raghav Mishra\n"));
+	move_cursor(10,13);
+	printf_P(PSTR("44839370"));
 	// Output the scrolling message to the LED matrix
 	// and wait for a push button to be pushed.
 	ledmatrix_clear();
 	while(1) {
-		set_scrolling_display_text("FROGGER", COLOUR_GREEN);
+		set_scrolling_display_text("44939370", COLOUR_RED);
 		// Scroll the message until it has scrolled off the 
 		// display or a button is pushed
 		while(scroll_display()) {
@@ -98,26 +98,35 @@ void new_game(void) {
 	// Initialise the score
 	init_score();
 	
+	setup_lives();
+
 	// Clear a button push or serial input if any are waiting
 	// (The cast to void means the return value is ignored.)
-	(void) button_pushed();
+	(void)button_pushed();
 	clear_serial_input_buffer();
 }
 
 void play_game(void) {
-	uint32_t current_time, last_move_time;
 	int8_t button;
 	char serial_input, escape_sequence_char;
 	uint8_t characters_into_escape_sequence = 0;
-	
 	// Get the current time and remember this as the last time the vehicles
 	// and logs were moved.
+	uint32_t current_time;
 	current_time = get_current_time();
-	last_move_time = current_time;
-	
+	uint32_t last_move_times[5] = {current_time, current_time, current_time, current_time, current_time};
+	uint32_t move_delays[5] = {750, 850, 1300, 1000, 1100};
+
+	int lives = 3;
+	int level_speed_offset = 0;
+
+	display_lives(lives);
+	move_cursor(0, 24);
+	printf_P(PSTR("LIVES: %d"), lives);
 	// We play the game while the frog is alive and we haven't filled up the 
 	// far riverbank
-	while(!is_frog_dead() && !is_riverbank_full()) {
+
+	while(!is_frog_dead() && !is_riverbank_full() && lives) {
 		if(!is_frog_dead() && frog_has_reached_riverbank()) {
 			// Frog reached the other side successfully but the
 			// riverbank isn't full, put a new frog at the start
@@ -179,23 +188,42 @@ void play_game(void) {
 			// Attempt to move right
 			move_frog_to_right();
 		} else if(serial_input == 'p' || serial_input == 'P') {
-			// Unimplemented feature - pause/unpause the game until 'p' or 'P' is
-			// pressed again
+			pause();
 		} 
 		// else - invalid input or we're part way through an escape sequence -
 		// do nothing
 		
 		current_time = get_current_time();
-		if(!is_frog_dead() && current_time >= last_move_time + 1000) {
-			// 1000ms (1 second) has passed since the last time we moved
-			// the vehicles and logs - move them again and keep track of
-			// the time when we did this. 
-			scroll_vehicle_lane(0, 1);
-			scroll_vehicle_lane(1, -1);
-			scroll_vehicle_lane(2, 1);
-			scroll_river_channel(0, -1);
-			scroll_river_channel(1, 1);
-			last_move_time = current_time;
+		// if(!is_frog_dead() && current_time >= last_move_time + 1000) {
+		// 	scroll_vehicle_lane(0, 1);
+		// 	scroll_vehicle_lane(1, -1);
+		// 	scroll_vehicle_lane(2, 1);
+		// 	scroll_river_channel(0, -1);
+		// 	scroll_river_channel(1, 1);
+		// 	last_move_time = current_time;
+		// }
+
+		if(!is_frog_dead()){
+			for(int i=0; i<5; i++){
+				if(current_time >=last_move_times[i] + move_delays[i] - level_speed_offset){
+					if(i<3){
+						scroll_vehicle_lane(i, pow(-1,i));
+						last_move_times[i] = current_time;
+					} else {
+						scroll_river_channel(i%2, pow(-1,i));
+						last_move_times[i] = current_time;
+					}
+				}
+			}
+		}
+
+		if(is_frog_dead() && lives){
+			lives--;
+			resurrect_frog();
+			put_frog_in_start_position();
+			display_lives(lives);
+			move_cursor(0, 24);
+			printf_P(PSTR("LIVES: %d"), lives);
 		}
 	}
 	// We get here if the frog is dead or the riverbank is full

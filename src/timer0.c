@@ -30,6 +30,7 @@ void init_timer0(void) {
 	 * constant. 
 	 */
 	clockTicks = 0L;
+	paused = 0;
 	
 	/* Clear the timer */
 	TCNT0 = 0;
@@ -73,7 +74,13 @@ uint32_t get_current_time(void) {
 	return returnValue;
 }
 
+void toggle_pause(){
+	paused = !paused;
+}
+
 ISR(TIMER0_COMPA_vect) {
 	/* Increment our clock tick count */
-	clockTicks++;
+	if(!paused){
+		clockTicks++;
+	}
 }
