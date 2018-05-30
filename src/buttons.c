@@ -7,11 +7,15 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include "buttons.h"
+#include "serialio.h"
+#include "terminalio.h"
+#include <stdio.h>
+#include <avr/pgmspace.h>
+
 // Global variable to keep track of the last button state so that we 
 // can detect changes when an interrupt fires. The lower 4 bits (0 to 3)
 // will correspond to the last state of port B pins 0 to 3.
 static volatile uint8_t last_button_state;
-
 // Our button queue. button_queue[0] is always the head of the queue. If we
 // take something off the queue we just move everything else along. We don't
 // use a circular buffer since it is usually expected that the queue is very
@@ -68,27 +72,30 @@ int8_t button_pushed(void) {
 	return return_value;
 }
 
+
+int8_t pressed_buttons(void){
+	return PINB & 0xF;
+}
 // Interrupt handler for a change on buttons
 ISR(PCINT1_vect) {
 	// Get the current state of the buttons. We'll compare this with
 	// the last state to see what has changed.
 	uint8_t button_state = PINB & 0x0F;
-	
 	// Iterate over all the buttons and see which ones have changed.
 	// Any button pushes are added to the queue of button pushes (if
 	// there is space). We ignore button releases so we're just looking
 	// for a transition from 0 in the last_button_state bit to a 1 in the 
 	// button_state.
 	for(uint8_t pin=0; pin<=3; pin++) {
-		if(queue_length < BUTTON_QUEUE_SIZE && 
-				(button_state & (1<<pin)) && 
-				!(last_button_state & (1<<pin))) {
+		if(queue_length < BUTTON_QUEUE_SIZE) {
 			// Add the button push to the queue (and update the
 			// length of the queue
-			button_queue[queue_length++] = pin;
+			if(!(last_button_state & (1<<pin)) &&
+			   (button_state & (1<<pin))){
+				button_queue[queue_length++] = pin;
+			} 
 		}
 	}
-	
 	// Remember this button state
 	last_button_state = button_state;
 }

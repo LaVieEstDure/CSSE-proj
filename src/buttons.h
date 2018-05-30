@@ -27,8 +27,7 @@ void init_button_interrupts(void);
  * ensure the queue does not overflow. Excess button pushes are
  * discarded.)
  */
-
 int8_t button_pushed(void);
-
+int8_t pressed_buttons(void);
 
 #endif /* BUTTONS_H_ */

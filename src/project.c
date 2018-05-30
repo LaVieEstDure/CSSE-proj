@@ -23,7 +23,7 @@
 #include "display.h"
 #define F_CPU 8000000L
 #include <util/delay.h>
-
+#include "highscore.h"
 // Timer length in 10ths of seconds
 #define TIMER_LENGTH 500
 // Function prototypes - these are defined below (after main()) in the order
@@ -62,7 +62,6 @@ void initialise_hardware(void) {
 	init_serial_stdio(19200,0);
 	init_ssg();
 	init_timer0();
-	init_timer2();
 	// Turn on global interrupts
 	sei();
 }
@@ -97,7 +96,7 @@ void new_game(void) {
 	initialise_game();
 	// Clear the serial terminal
 	clear_terminal();
-	
+	init_highscore();
 	// Initialise the score
 	init_score();
 	
@@ -117,12 +116,12 @@ void play_game(void) {
 	// and logs were moved.
 	uint32_t current_time = get_current_time();
 	uint32_t last_time = current_time;
+	uint32_t enable_time = current_time;
 	uint32_t last_move_times[5] = {current_time, current_time, current_time, current_time, current_time};
 	uint32_t move_delays[5] = {750, 850, 1300, 1000, 1100};
 	uint16_t secondths_left = TIMER_LENGTH;
 	set_num(secondths_left);
-
-
+	uint32_t last_held_time = current_time;
 	int lives = 3;
 	int8_t level = 1;
 	move_cursor(15, 0);
@@ -171,7 +170,7 @@ void play_game(void) {
 		serial_input = -1;
 		escape_sequence_char = -1;
 		button = button_pushed();
-		
+
 		if(button == NO_BUTTON_PUSHED) {
 			// No push button was pushed, see if there is any serial input
 			if(serial_input_available()) {
@@ -200,7 +199,33 @@ void play_game(void) {
 				}
 			}
 		}
+
 		if(!paused){
+			if(button == 3 || button == 2 
+			|| button == 1 || button == 0){
+				enable_time = current_time;
+			}
+			if((current_time >= last_held_time + 150)
+			&& (current_time >= enable_time + 1000)) {
+				last_held_time = current_time;
+				int8_t a = pressed_buttons();
+				if(a && !(a & (a-1))){
+					switch(a){
+						case 0b0001:
+							button = 0;
+							break;
+						case 0b0010:
+							button = 1;
+							break;
+						case 0b0100:
+							button = 2;
+							break;
+						case 0b1000:
+							button = 3;
+							break;
+					}
+				}
+			}
 			// Process the input. 
 			if(button==3 || escape_sequence_char=='D' || serial_input=='L' || serial_input=='l') {
 				// Attempt to move left
@@ -216,8 +241,11 @@ void play_game(void) {
 				move_frog_to_right();
 			}
 		}
+
+		
 		if(serial_input == 'p' || serial_input == 'P') {
-			pause();
+			set_highscore(0, 10, "rags");
+			read_highscore(0);
 		} 
 		// else - invalid input or we're part way through an escape sequence -
 		// do nothing
