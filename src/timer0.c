@@ -10,7 +10,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-
+#include "display.h"
 #include "timer0.h"
 
 /* Our internal clock tick count - incremented every 
@@ -76,10 +76,11 @@ uint32_t get_current_time(void) {
 
 void toggle_pause(){
 	paused = !paused;
-}
+} 
 
 ISR(TIMER0_COMPA_vect) {
 	/* Increment our clock tick count */
+	switch_disp();
 	if(!paused){
 		clockTicks++;
 	}

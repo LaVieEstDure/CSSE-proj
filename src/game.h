@@ -84,6 +84,8 @@ void scroll_vehicle_lane(uint8_t lane, int8_t direction);
 // direction argument is -1 for left, 1 for right, 0 for no scroll (just redraw)
 void scroll_river_channel (uint8_t channel, int8_t direction);
 void resurrect_frog(void);
+void kill_frog(void);
+
 void reset_riverbank(void);
 void scroll_out(void);
 void redraw_roads(void);

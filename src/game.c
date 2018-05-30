@@ -185,6 +185,11 @@ void resurrect_frog(void){
 	frog_dead = 0;
 }
 
+void kill_frog(void){
+	frog_dead = 1;
+	redraw_frog();
+}
+
 // Scroll the given lane of traffic. (lane value must be 0 to 2)
 void scroll_vehicle_lane(uint8_t lane, int8_t direction) {
 	uint8_t frog_is_in_this_row = (frog_row == lane + FIRST_VEHICLE_ROW);

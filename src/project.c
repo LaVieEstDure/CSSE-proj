@@ -20,9 +20,12 @@
 #include "score.h"
 #include "timer0.h"
 #include "game.h"
+#include "display.h"
 #define F_CPU 8000000L
 #include <util/delay.h>
 
+// Timer length in 10ths of seconds
+#define TIMER_LENGTH 500
 // Function prototypes - these are defined below (after main()) in the order
 // given here
 void initialise_hardware(void);
@@ -57,8 +60,9 @@ void initialise_hardware(void) {
 	// Setup serial port for 19200 baud communication with no echo
 	// of incoming characters
 	init_serial_stdio(19200,0);
-	
+	init_ssg();
 	init_timer0();
+	init_timer2();
 	// Turn on global interrupts
 	sei();
 }
@@ -91,7 +95,6 @@ void splash_screen(void) {
 void new_game(void) {
 	// Initialise the game and display
 	initialise_game();
-	
 	// Clear the serial terminal
 	clear_terminal();
 	
@@ -112,10 +115,13 @@ void play_game(void) {
 	uint8_t characters_into_escape_sequence = 0;
 	// Get the current time and remember this as the last time the vehicles
 	// and logs were moved.
-	uint32_t current_time;
-	current_time = get_current_time();
+	uint32_t current_time = get_current_time();
+	uint32_t last_time = current_time;
 	uint32_t last_move_times[5] = {current_time, current_time, current_time, current_time, current_time};
 	uint32_t move_delays[5] = {750, 850, 1300, 1000, 1100};
+	uint16_t secondths_left = TIMER_LENGTH;
+	set_num(secondths_left);
+
 
 	int lives = 3;
 	int8_t level = 1;
@@ -146,10 +152,12 @@ void play_game(void) {
 			reset_riverbank();
 		}
 
+
 		if(!is_frog_dead() && frog_has_reached_riverbank()) {
 			// Frog reached the other side successfully but the
 			// riverbank isn't full, put a new frog at the start
 			put_frog_in_start_position();
+			secondths_left = TIMER_LENGTH;
 		}
 		
 		// Check for input - which could be a button push or serial input.
@@ -209,20 +217,12 @@ void play_game(void) {
 			}
 		}
 		if(serial_input == 'p' || serial_input == 'P') {
-			remix_colours();
+			pause();
 		} 
 		// else - invalid input or we're part way through an escape sequence -
 		// do nothing
 		
 		current_time = get_current_time();
-		// if(!is_frog_dead() && current_time >= last_move_time + 1000) {
-		// 	scroll_vehicle_lane(0, 1);
-		// 	scroll_vehicle_lane(1, -1);
-		// 	scroll_vehicle_lane(2, 1);
-		// 	scroll_river_channel(0, -1);
-		// 	scroll_river_channel(1, 1);
-		// 	last_move_time = current_time;
-		// }
 
 		if(!is_frog_dead()){
 			for(int i=0; i<5; i++){
@@ -235,6 +235,17 @@ void play_game(void) {
 						last_move_times[i] = current_time;
 					}
 				}
+			}
+		}
+		// Handle the timer
+
+		if(current_time >= last_time + 100){
+			last_time = current_time;
+			secondths_left--;
+			set_num(secondths_left);
+			if(secondths_left <= 0){
+				kill_frog();
+				secondths_left = TIMER_LENGTH;
 			}
 		}
 
