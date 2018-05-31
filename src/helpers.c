@@ -17,8 +17,8 @@ void update_score(int score){
 }
 
 void setup_lives(){
-	DDRA &= ~0xF;
-	DDRA |= 0xF;
+	DDRA &= ~0x1F;
+	DDRA |= 0x1F;
 }
 
 void display_lives(int8_t lives){
@@ -27,7 +27,7 @@ void display_lives(int8_t lives){
 		out = (out << 1) + 1;
 		lives--;
 	}
-	PORTA &= ~0xF;
+	PORTA &= ~0x1F;
 	PORTA |= out;
 }
 

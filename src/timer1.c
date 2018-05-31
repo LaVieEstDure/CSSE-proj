@@ -2,7 +2,6 @@
 #include <avr/interrupt.h>
 
 #include "timer1.h"
-#include "timer2.h"
 
 #include <avr/io.h>
 #define F_CPU 8000000UL	// 8MHz
@@ -12,6 +11,7 @@ uint16_t pulsewidth;
 uint16_t clockperiod;
 uint16_t time;
 volatile uint16_t buzzlength;
+static volatile uint8_t muted;
 // For a given frequency (Hz), return the clock period (in terms of the
 // number of clock cycles of a 1MHz clock)
 uint16_t freq_to_clock_period(uint16_t freq) {
@@ -27,11 +27,12 @@ uint16_t duty_cycle_to_pulse_width(float dutycycle, uint16_t clockperiod) {
 
 void init_timer1(void){
     uint16_t freq = 200;	// Hz
-	float dutycycle = 2;	// %
+	float dutycycle = 1;	// %
 	uint16_t clockperiod = freq_to_clock_period(freq);
 	uint16_t pulsewidth = duty_cycle_to_pulse_width(dutycycle, clockperiod);
+	DDRD &= ~(1<<PORTD7);
 
-    DDRD&= ~(1<<PORTB4);
+    DDRD&= ~(1<<PORTD4);
     OCR1A = clockperiod - 1;
 
     if(pulsewidth == 0) {
@@ -45,18 +46,27 @@ void init_timer1(void){
 	TCCR1B = (1 << WGM12) | (1 << WGM13) | (0 << CS12) | (1 << CS11) | (0 << CS10);
 
 }
-void turnoff_buzz(void){
-    DDRD &= ~(1<<PORTB4);
+
+void check_muted(void){
+    muted = (PIND >> 7) & 1;
 }
+
 void turnon_buzz(void){
-    DDRD |= (1<<PORTB4);
+    if(!muted) {
+        DDRD |= (1<<PORTD4);
+    }
+}
+void turnoff_buzz(void){
+    DDRD &= ~(1 << PORTD4);
 }
 
 void start_buzz(uint16_t length){
     buzzlength = length;
 }
+
+
 void set_frequency(uint16_t freq){
-    float dutycycle = 2;	// %
+    float dutycycle = 1;	// %
 	clockperiod = freq_to_clock_period(freq);
 	pulsewidth = duty_cycle_to_pulse_width(dutycycle, clockperiod);
     OCR1B = pulsewidth - 1;

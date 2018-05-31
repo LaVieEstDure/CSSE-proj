@@ -115,6 +115,7 @@ void alternate_sound(void){
 uint16_t sdelay = 0;
 ISR(TIMER0_COMPA_vect) {
 	/* Increment our clock tick count */
+	check_muted();
 	switch_disp();
 	if(!(delay > 0)){
 		if(!paused){

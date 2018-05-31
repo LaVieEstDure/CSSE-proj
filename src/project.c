@@ -150,10 +150,10 @@ void play_game(void) {
 	// We play the game while the frog is alive and we haven't filled up the 
 	// far riverbank
 	while(!is_frog_dead() && lives) {
+		
 		if(is_riverbank_full()){
 			level++;
 			remix_data();
-
 			if(lives < 5){
 				lives++;
 				display_lives(lives);
