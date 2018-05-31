@@ -32,5 +32,7 @@ bool paused;
 uint32_t get_current_time(void);
 void delay_time(uint16_t scondths);
 uint8_t is_delayed(void);
-
+void buzz(uint16_t len);
+void turn_on_sound(void);
+void alternate_sound(void);
 #endif

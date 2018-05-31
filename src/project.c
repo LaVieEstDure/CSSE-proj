@@ -11,6 +11,7 @@
 #include <avr/pgmspace.h>
 #include <stdio.h>
 #include <math.h>
+#include <ctype.h>
 #include "helpers.h"
 #include "ledmatrix.h"
 #include "scrolling_char_display.h"
@@ -19,11 +20,14 @@
 #include "terminalio.h"
 #include "score.h"
 #include "timer0.h"
+#include "timer1.h"
+
 #include "game.h"
 #include "display.h"
 #define F_CPU 8000000L
 #include <util/delay.h>
 #include "highscore.h"
+#include "joystick.h"
 // Timer length in 10ths of seconds
 #define TIMER_LENGTH 500
 // Function prototypes - these are defined below (after main()) in the order
@@ -62,6 +66,8 @@ void initialise_hardware(void) {
 	init_serial_stdio(19200,0);
 	init_ssg();
 	init_timer0();
+	init_timer1();
+	init_joy();
 	// Turn on global interrupts
 	sei();
 }
@@ -82,7 +88,7 @@ void splash_screen(void) {
 	// and wait for a push button to be pushed.
 	ledmatrix_clear();
 	while(1) {
-		set_scrolling_display_text("44939370", COLOUR_RED);
+		set_scrolling_display_text("RAGHAV MISHRA 44939370", COLOUR_RED);
 		// Scroll the message until it has scrolled off the 
 		// display or a button is pushed
 		while(scroll_display()) {
@@ -92,6 +98,7 @@ void splash_screen(void) {
 			}
 		}
 	}
+	
 }
 
 void new_game(void) {
@@ -114,6 +121,9 @@ void play_game(void) {
 	int8_t button;
 	char serial_input, escape_sequence_char;
 	uint8_t characters_into_escape_sequence = 0;
+	alternate_sound();
+	uint8_t joy_direc;
+	
 	// Get the current time and remember this as the last time the vehicles
 	// and logs were moved.
 	uint32_t current_time = get_current_time();
@@ -124,6 +134,8 @@ void play_game(void) {
 	uint16_t secondths_left = TIMER_LENGTH;
 	set_num(secondths_left);
 	uint32_t last_held_time = current_time;
+	
+	
 	int lives = 3;
 	int8_t level = 1;
 	move_cursor(15, 0);
@@ -131,6 +143,8 @@ void play_game(void) {
 	display_lives(lives);
 	move_cursor(0, 24);
 	printf_P(PSTR("LIVES: %d"), lives);
+	
+	
 	// We play the game while the frog is alive and we haven't filled up the 
 	// far riverbank
 	while(!is_frog_dead() && lives) {
@@ -145,7 +159,7 @@ void play_game(void) {
 			scroll_out();
 			resurrect_frog();			
 			for(int i=0;i<5; i++){
-				move_delays[i] = move_delays[i] -  move_delays[i] / 30;
+				move_delays[i] = move_delays[i] -  (move_delays[i] / 5);
 			}
 			remix_colours();
 			redraw_roads();
@@ -202,6 +216,7 @@ void play_game(void) {
 			}
 		}
 
+
 		if(!paused && !is_delayed()){
 			if(button == 3 || button == 2 
 			|| button == 1 || button == 0){
@@ -228,25 +243,30 @@ void play_game(void) {
 					}
 				}
 			}
+			joy_direc = joy_direction();
 			// Process the input. 
 			if(button==3 || escape_sequence_char=='D' || serial_input=='L' || serial_input=='l') {
 				// Attempt to move left
 				move_frog_to_left();
-			} else if(button==2 || escape_sequence_char=='A' || serial_input=='U' || serial_input=='u') {
+				buzz(15);
+			} else if(button==2 || escape_sequence_char=='A' || serial_input=='U' || serial_input=='u' ) {
 				// Attempt to move forward
 				move_frog_forward();
-			} else if(button==1 || escape_sequence_char=='B' || serial_input=='D' || serial_input=='d') {
+				buzz(15);
+			} else if(button==1 || escape_sequence_char=='B' || serial_input=='D' || serial_input=='d' ) {
 				// Attempt to move down
 				move_frog_backward();
-			} else if(button==0 || escape_sequence_char=='C' || serial_input=='R' || serial_input=='r') {
+				buzz(15);
+			} else if(button==0 || escape_sequence_char=='C' || serial_input=='R' || serial_input=='r' ) {
 				// Attempt to move right
 				move_frog_to_right();
+				buzz(15);
 			}
 		}
 
 		
 		if(serial_input == 'p' || serial_input == 'P') {
-			print_highscores();
+			pause();
 		} 
 		// else - invalid input or we're part way through an escape sequence -
 		// do nothing
@@ -280,6 +300,7 @@ void play_game(void) {
 
 		if(is_frog_dead() && lives){
 			lives--;
+			buzz(1000);
 			delay_time(20);
 			while(is_delayed()){
 				;
@@ -295,17 +316,36 @@ void play_game(void) {
 	// We get here if the riverbank is full
 	// The game is over.
 	char name[15];
-	printf_P(PSTR("Name? "));
+	move_cursor(10, 10);
+	turn_on_sound();
+	printf_P(PSTR("What is your name? Press enter when done"));
 	int i = 0;
-	while(1){
+	show_cursor();
+	move_cursor(10, 11);
+	int esc = 0;
+	while(i < 15){
 		if(serial_input_available()){
 			char serial_input = fgetc(stdin);
-			if(serial_input);	
-		}
-	}
+			if(serial_input == '\n'){
+				break;
+			}
+			if(serial_input == ESCAPE_CHAR){
+				esc = 3;		
+			}
+			if(esc > 0){
+				esc--;
+				continue;
+			}
+			if(isalpha(serial_input)||isdigit(serial_input)||serial_input==' ') {
+				name[i] = serial_input;
+				putc(serial_input, stdin);
+				i++;
+			}
 
+		} else {}
+	}
+	hide_cursor();
 	set_highscore((char*) &name, get_score());
-	print_highscores();
 }
 
 void handle_game_over() {
@@ -313,8 +353,10 @@ void handle_game_over() {
 	printf_P(PSTR("GAME OVER"));
 	move_cursor(10,3);
 	printf_P(PSTR("Press a button to start again"));
+	print_highscores();
 	while(button_pushed() == NO_BUTTON_PUSHED) {
 		; // wait
 	}
-	
+	print_highscores();
+
 }

@@ -177,6 +177,63 @@ void move_frog_to_right(void) {
 	redraw_frog();
 }
 
+void move_frog_topleft(void){
+	redraw_row(frog_row);
+	frog_dead = will_frog_die_at_position(frog_row+1, frog_column-1);
+	if(frog_column == 0 || frog_row == 7){
+		kill_frog();
+	} else {
+		frog_column--;
+		frog_row++;
+	}
+	redraw_frog();
+	if(!frog_dead && frog_row == RIVERBANK_ROW) {
+		riverbank_status |= (1<<frog_column);
+		update_score(10);
+	}
+}
+
+void move_frog_topright(void){
+	redraw_row(frog_row);
+	frog_dead = will_frog_die_at_position(frog_row+1, frog_column+1);
+	if(frog_column == 15 || frog_row == 7){
+		kill_frog();
+	} else {
+		frog_column++;
+		frog_row++;
+	}
+	redraw_frog();
+	if(!frog_dead && frog_row == RIVERBANK_ROW) {
+		riverbank_status |= (1<<frog_column);
+		update_score(10);
+	}
+}
+
+void move_frog_bottomright(void){
+	redraw_row(frog_row);
+	frog_dead = will_frog_die_at_position(frog_row-1, frog_column+1);
+	if(frog_column == 15 || frog_row == 0){
+		kill_frog();
+	} else {
+		frog_column++;
+		frog_row--;
+	}
+	redraw_frog();
+}
+
+void move_frog_bottomleft(void){
+	redraw_row(frog_row);
+	frog_dead = will_frog_die_at_position(frog_row-1, frog_column-);
+	if(frog_column == 0 || frog_row == 0){
+		kill_frog();
+	} else {
+		frog_column--;
+		frog_row--;
+	}
+	redraw_frog();
+}
+
+
 uint8_t get_frog_row(void) {
 	return frog_row;
 }

@@ -55,13 +55,14 @@ void print_highscores(void){
     move_cursor(16, 9);
     printf_P(PSTR("HIGSCORES"));
     for(int i=0; i < NUM_SCORE; i++){
-        move_cursor(10,10 + i);
         clear_to_end_of_line();
         if(high_scores[i].score != 0){
+            move_cursor(10,10 + i);
+            clear_to_end_of_line();
             printf_P(PSTR("%d. Name: %s"),
-                        i, 
+                        i+ 1, 
                         &high_scores[i].name); 
-            move_cursor(25,10 + i);
+            move_cursor(45,10+i);
             printf_P(PSTR("Score: %d"), high_scores[i].score);
         }
     }

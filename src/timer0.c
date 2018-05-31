@@ -12,11 +12,13 @@
 #include <avr/interrupt.h>
 #include "display.h"
 #include "timer0.h"
+#include "timer1.h"
 
 /* Our internal clock tick count - incremented every 
  * millisecond. Will overflow every ~49 days. */
 static volatile uint32_t clockTicks;
 static volatile uint16_t delay;
+volatile uint16_t buzzer_len;
 /* Set up timer 0 to generate an interrupt every 1ms. 
  * We will divide the clock by 64 and count up to 124.
  * We will therefore get an interrupt every 64 x 125
@@ -25,10 +27,18 @@ static volatile uint16_t delay;
  * The counter will be reset to 0 when it reaches it's
  * output compare value.
  */
+
+void buzz(uint16_t len){
+	buzzer_len = len;
+}
+
+
+
 void init_timer0(void) {
 	/* Reset clock tick count. L indicates a long (32 bit) 
 	 * constant. 
 	 */
+	buzzer_len = 0;
 	clockTicks = 0L;
 	paused = 0;
 	delay = 0;
@@ -85,7 +95,24 @@ void delay_time(uint16_t secondths){
 uint8_t is_delayed(void){
 	return ((delay > 0) ? 1 : 0); 
 }
+static int8_t sound_on = -1;
 
+void turn_on_sound(void){
+	sound_on = 0;
+}
+static int16_t sound[] = {500, 15, 15, 500, 70, 150, 20, 100, -1};
+static uint16_t freq[] = {2408, 2273, 2025, 1911, 1703, 1517, 1432, 1276, 200};
+
+static uint8_t alternate = 0;
+static int16_t sound2[] = {150, 400,  15, 500, 70, 15, 500, 70, -1};
+static uint16_t freq2[] = {500, 2273, 200, 2408, 2273, 2025, 2408, 2273, 200};
+
+void alternate_sound(void){
+	alternate = 1;
+	sound_on = 0;
+}
+
+uint16_t sdelay = 0;
 ISR(TIMER0_COMPA_vect) {
 	/* Increment our clock tick count */
 	switch_disp();
@@ -96,5 +123,41 @@ ISR(TIMER0_COMPA_vect) {
 	} else {
 		delay--;
 	}
-	
+	if(!paused){
+	if(sound_on == -1){
+		if(buzzer_len > 0){
+			turnon_buzz();
+			buzzer_len--;	
+		} else {
+			turnoff_buzz();
+		}
+	} else {
+		if(buzzer_len > 0){
+			turnon_buzz();
+			buzzer_len--;
+		} else {
+			if(sdelay > 0){
+				sdelay--;
+				turnoff_buzz();
+			} else {
+				if(sound[sound_on] == -1){
+					if(alternate){
+						alternate = 0;
+					}
+					sound_on = -1;
+					set_frequency(200);
+				} else {
+					if(!alternate){
+						buzzer_len = sound[sound_on];
+						set_frequency(freq[sound_on]);
+					} else {
+						buzzer_len = sound2[sound_on];
+						set_frequency(freq2[sound_on]);
+					}
+					sound_on++;
+					sdelay = 250;						
+				}
+			}
+		}
+	}} 
 }
