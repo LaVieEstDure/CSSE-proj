@@ -30,5 +30,7 @@ bool paused;
  * initialised.
  */
 uint32_t get_current_time(void);
+void delay_time(uint16_t scondths);
+uint8_t is_delayed(void);
 
 #endif

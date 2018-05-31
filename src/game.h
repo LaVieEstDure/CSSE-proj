@@ -90,4 +90,5 @@ void reset_riverbank(void);
 void scroll_out(void);
 void redraw_roads(void);
 void remix_colours(void);
+
 #endif /* GAME_H_ */

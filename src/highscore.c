@@ -11,57 +11,59 @@
 
 static Entry high_scores[NUM_SCORE];
 
-static void new_highscore_board(void){
+void new_highscore_board(void){
     uint8_t integrity_num = 42;
     eeprom_update_byte ((uint8_t*) 42, integrity_num);
     for(int i = 0; i < NUM_SCORE; i++){
         high_scores[i].name[0] = '\0';
         high_scores[i].score = 0;
     }
-    eeprom_update_block( (const void*) high_scores, 
+    eeprom_update_block((const void*) &high_scores, 
                         (void*) TABLE_OFFSET, 
-                        sizeof(high_scores));
+                        sizeof(Entry)*NUM_SCORE);
 }
 
 void init_highscore(void){
     if(eeprom_read_byte((uint8_t*) 42) != 42){
         new_highscore_board();
     }
-    eeprom_read_block((void*) high_scores, (void*) TABLE_OFFSET, sizeof(Entry)*NUM_SCORE);
+    eeprom_read_block((void*) &high_scores, 
+                      (const void*) TABLE_OFFSET, 
+                      sizeof(Entry)*NUM_SCORE);
 }
 
-void set_highscore(int8_t rank, 
-                   int8_t score,
-                   char name[15]) {
-    Entry new_high;
-    memcpy(new_high.name, name, 15);
-    Entry new_highscores[NUM_SCORE];
-    memcpy((void*) new_highscores, (void*) high_scores,sizeof(Entry)*NUM_SCORE);
-    
-    for(int i=0; i>NUM_SCORE; i++){
-        if(new_highscores[i].score <= score){
-            for(int j = 0; j < i; j++){
-                new_highscores[j] = new_highscores[j+1];
+void set_highscore(char *name, uint8_t score){
+    for(int i = 0; i < NUM_SCORE; i++){
+        if(high_scores[i].score > score){
+            continue;
+        } else {
+            for(int j = NUM_SCORE - 1; j > i; j--){
+                high_scores[j].score = high_scores[j-1].score;
+                memcpy(&high_scores[i].name, &high_scores[i-1].name, sizeof(char)*15);
             }
-            new_highscores[i].score = score;
-            memcpy((void*) (&new_highscores[i]), name, 15);
+            high_scores[i].score = score;
+            memcpy(&high_scores[i], name, sizeof(char)*15);
             break;
         }
     }
-    eeprom_update_block(( void*) new_highscores, (void*)TABLE_OFFSET, sizeof(Entry)*NUM_SCORE);
+    eeprom_update_block((const void*) &high_scores, 
+                        (void*) TABLE_OFFSET, 
+                        sizeof(Entry)*NUM_SCORE);
 }
 
-void read_highscore(int8_t rank){
-    Entry new_highscores[NUM_SCORE];
-    eeprom_read_block((void *) new_highscores, ( void *)TABLE_OFFSET, sizeof(Entry)*NUM_SCORE);
-    move_cursor(10, 20);
-    printf_P(PSTR("HIGHSCORE"));
-    move_cursor(10, 21);
-    int i = 0;
-    while(new_highscores[rank].name[i] != 0){
-        printf_P(PSTR("%c"), new_highscores[rank].name[i]);
-        i++;
+void print_highscores(void){
+    move_cursor(16, 9);
+    printf_P(PSTR("HIGSCORES"));
+    for(int i=0; i < NUM_SCORE; i++){
+        move_cursor(10,10 + i);
+        clear_to_end_of_line();
+        if(high_scores[i].score != 0){
+            printf_P(PSTR("%d. Name: %s"),
+                        i, 
+                        &high_scores[i].name); 
+            move_cursor(25,10 + i);
+            printf_P(PSTR("Score: %d"), high_scores[i].score);
+        }
     }
-    move_cursor(10, 22);
-    printf(PSTR("%d"), new_highscores[rank].score);
 }
+

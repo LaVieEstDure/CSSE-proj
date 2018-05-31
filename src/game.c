@@ -109,9 +109,9 @@ void initialise_game(void) {
 // Add a frog to the game
 void put_frog_in_start_position(void) {
 	// Initial starting position of frog (7,0)
+	redraw_row(frog_row);
 	frog_row = 0;
 	frog_column = 7;
-	
 	// Frog is initially alive
 	frog_dead = 0;
 	
@@ -130,7 +130,11 @@ void move_frog_forward(void) {
 	
 	// Move the frog position forward and show the frog. 
 	// We do this whether the frog is alive or not. 
-	frog_row++;
+	if(frog_row == 7){
+		kill_frog();
+	} else {
+		frog_row++;
+	}
 	redraw_frog();
 	update_score(1);
 	// If the frog has ended up successfully in row 7 - add it to the riverbank_status flag
@@ -143,21 +147,33 @@ void move_frog_forward(void) {
 void move_frog_backward(void) {
 	redraw_row(frog_row);
 	frog_dead = will_frog_die_at_position(frog_row-1, frog_column);
-	frog_row--;
+	if(frog_row == 0){
+		kill_frog();
+	} else {
+		frog_row--;
+	}
 	redraw_frog();
 }
 
 void move_frog_to_left(void) {
 	redraw_row(frog_row);
 	frog_dead = will_frog_die_at_position(frog_row, frog_column-1);
-	frog_column--;
+	if(frog_column == 0){
+		kill_frog();
+	} else {
+		frog_column--;
+	}
 	redraw_frog();
 }
 
 void move_frog_to_right(void) {
 	redraw_row(frog_row);
 	frog_dead = will_frog_die_at_position(frog_row, frog_column+1);
-	frog_column++;
+	if(frog_column == 15){
+		kill_frog();
+	} else {
+		frog_column++;
+	}
 	redraw_frog();
 }
 
@@ -459,7 +475,7 @@ static void redraw_riverbank(void) {
 }
 
 // Redraw the frog in its current position.
-static void redraw_frog(void) {
+void redraw_frog(void) {
 	if(frog_dead) {
 		ledmatrix_update_pixel(frog_column, frog_row, COLOUR_DEAD_FROG);
 	} else {

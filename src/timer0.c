@@ -16,7 +16,7 @@
 /* Our internal clock tick count - incremented every 
  * millisecond. Will overflow every ~49 days. */
 static volatile uint32_t clockTicks;
-
+static volatile uint16_t delay;
 /* Set up timer 0 to generate an interrupt every 1ms. 
  * We will divide the clock by 64 and count up to 124.
  * We will therefore get an interrupt every 64 x 125
@@ -31,7 +31,7 @@ void init_timer0(void) {
 	 */
 	clockTicks = 0L;
 	paused = 0;
-	
+	delay = 0;
 	/* Clear the timer */
 	TCNT0 = 0;
 
@@ -78,10 +78,23 @@ void toggle_pause(){
 	paused = !paused;
 } 
 
+void delay_time(uint16_t secondths){
+	delay = secondths * 100;
+}
+
+uint8_t is_delayed(void){
+	return ((delay > 0) ? 1 : 0); 
+}
+
 ISR(TIMER0_COMPA_vect) {
 	/* Increment our clock tick count */
 	switch_disp();
-	if(!paused){
-		clockTicks++;
+	if(!(delay > 0)){
+		if(!paused){
+			clockTicks++;
+		}	
+	} else {
+		delay--;
 	}
+	
 }

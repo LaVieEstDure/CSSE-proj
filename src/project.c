@@ -69,12 +69,15 @@ void initialise_hardware(void) {
 void splash_screen(void) {
 	// Clear terminal screen and output a message
 	clear_terminal();
-	move_cursor(10,10);
+	move_cursor(10,1);
 	printf_P(PSTR("Frogger"));
-	move_cursor(10,12);
+	move_cursor(10,2);
 	printf_P(PSTR("CSSE2010 project by Raghav Mishra\n"));
-	move_cursor(10,13);
+	move_cursor(10,3);
 	printf_P(PSTR("44839370"));
+	init_highscore();
+	print_highscores();
+
 	// Output the scrolling message to the LED matrix
 	// and wait for a push button to be pushed.
 	ledmatrix_clear();
@@ -96,7 +99,6 @@ void new_game(void) {
 	initialise_game();
 	// Clear the serial terminal
 	clear_terminal();
-	init_highscore();
 	// Initialise the score
 	init_score();
 	
@@ -200,7 +202,7 @@ void play_game(void) {
 			}
 		}
 
-		if(!paused){
+		if(!paused && !is_delayed()){
 			if(button == 3 || button == 2 
 			|| button == 1 || button == 0){
 				enable_time = current_time;
@@ -244,8 +246,7 @@ void play_game(void) {
 
 		
 		if(serial_input == 'p' || serial_input == 'P') {
-			set_highscore(0, 10, "rags");
-			read_highscore(0);
+			print_highscores();
 		} 
 		// else - invalid input or we're part way through an escape sequence -
 		// do nothing
@@ -279,6 +280,10 @@ void play_game(void) {
 
 		if(is_frog_dead() && lives){
 			lives--;
+			delay_time(20);
+			while(is_delayed()){
+				;
+			}
 			resurrect_frog();
 			put_frog_in_start_position();
 			display_lives(lives);
@@ -289,12 +294,24 @@ void play_game(void) {
 	}
 	// We get here if the riverbank is full
 	// The game is over.
+	char name[15];
+	printf_P(PSTR("Name? "));
+	int i = 0;
+	while(1){
+		if(serial_input_available()){
+			char serial_input = fgetc(stdin);
+			if(serial_input);	
+		}
+	}
+
+	set_highscore((char*) &name, get_score());
+	print_highscores();
 }
 
 void handle_game_over() {
-	move_cursor(10,14);
+	move_cursor(10,2);
 	printf_P(PSTR("GAME OVER"));
-	move_cursor(10,15);
+	move_cursor(10,3);
 	printf_P(PSTR("Press a button to start again"));
 	while(button_pushed() == NO_BUTTON_PUSHED) {
 		; // wait

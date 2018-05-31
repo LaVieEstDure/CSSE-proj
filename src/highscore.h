@@ -7,7 +7,7 @@ typedef struct {
 } Entry;
 void read_highscore(int8_t rank);
 void init_highscore(void);
-void set_highscore(int8_t rank, 
-                   int8_t score,
-                   char name[15]);
+void print_highscores(void);
+void new_highscore_board(void);
+void set_highscore(char* name, uint8_t score);
 #endif

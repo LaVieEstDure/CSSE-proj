@@ -9,6 +9,7 @@
 #include "buttons.h"
 #include "serialio.h"
 #include "terminalio.h"
+#include "timer0.h"
 #include <stdio.h>
 #include <avr/pgmspace.h>
 
@@ -92,7 +93,9 @@ ISR(PCINT1_vect) {
 			// length of the queue
 			if(!(last_button_state & (1<<pin)) &&
 			   (button_state & (1<<pin))){
-				button_queue[queue_length++] = pin;
+				if(!is_delayed()){
+					button_queue[queue_length++] = pin;
+				}
 			} 
 		}
 	}
