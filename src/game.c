@@ -20,10 +20,12 @@ static uint8_t frog_dead;
 // Index 0 to 2 corresponds to lanes 1 to 3 respectively. Lanes 1 and 3
 // will move to the right; lane 2 will move to the left.
 #define LANE_DATA_WIDTH 64	// must be power of 2
-static uint64_t lane_data[3] = {
+static uint64_t lane_data[5] = {
 		0b1100001100011000110000011001100011000011000110001100000110011000,
 		0b0011100000111000011100000111000011100001110001110000111000011100,
-		0b0000111100001111000011110000111100001111000001111100001111000111
+		0b0000111100001111000011110000111100001111000001111100001111000111,
+		0b0010110100001011010000101101000010110100001011010000101101000010,
+		0b1110000110000111000011000011100001100001110000110000111000011000
 };
 		
 // Log data - 32 bits for each log channel which we loop continuously.
@@ -31,11 +33,26 @@ static uint64_t lane_data[3] = {
 // Index 0 to 1 corresponds to rows 5 and 6 respectively. Row 5 will move
 // to the left; row 6 will move to the right
 #define LOG_DATA_WIDTH 32 // must be power of 2
-static uint32_t log_data[2] = {
+static uint32_t log_data[4] = {
 		0b11110001100111000111100011111000,
-		0b11100110111101100001110110011100
+		0b11100110111101100001110110011100,
+		0b10010011001010011101110110101101,
+		0b11100000101100111000111110100110
 };
 
+
+void remix_data(void){
+	uint64_t temp = lane_data[0];
+	for(int i = 0; i < 4; i++){
+		lane_data[i] = lane_data[i+1];
+	}
+	lane_data[4] = temp;
+	temp = log_data[0];
+	for(int i = 0; i < 3; i++){
+		log_data[i] = log_data[i+1];
+	}
+	log_data[3] = temp;
+}
 // Lane positions. The bit position (0 to 63) of the lane_data above that is
 // currently in column 0 of the display (left hand side). (Bit position
 // 0 is the least significant bit.) For a lane position of N, the display
@@ -186,6 +203,7 @@ void move_frog_topleft(void){
 		frog_column--;
 		frog_row++;
 	}
+	update_score(1);
 	redraw_frog();
 	if(!frog_dead && frog_row == RIVERBANK_ROW) {
 		riverbank_status |= (1<<frog_column);
@@ -202,6 +220,7 @@ void move_frog_topright(void){
 		frog_column++;
 		frog_row++;
 	}
+	update_score(1);
 	redraw_frog();
 	if(!frog_dead && frog_row == RIVERBANK_ROW) {
 		riverbank_status |= (1<<frog_column);
@@ -223,7 +242,7 @@ void move_frog_bottomright(void){
 
 void move_frog_bottomleft(void){
 	redraw_row(frog_row);
-	frog_dead = will_frog_die_at_position(frog_row-1, frog_column-);
+	frog_dead = will_frog_die_at_position(frog_row-1, frog_column-1);
 	if(frog_column == 0 || frog_row == 0){
 		kill_frog();
 	} else {

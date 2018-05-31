@@ -143,13 +143,17 @@ void play_game(void) {
 	display_lives(lives);
 	move_cursor(0, 24);
 	printf_P(PSTR("LIVES: %d"), lives);
-	
-	
+	update_score(0);
+	uint8_t last_joy_dir = -1;
+	uint32_t last_joy_time = get_current_time();
+	uint32_t last_joy_repeat = get_current_time();
 	// We play the game while the frog is alive and we haven't filled up the 
 	// far riverbank
 	while(!is_frog_dead() && lives) {
 		if(is_riverbank_full()){
 			level++;
+			remix_data();
+
 			if(lives < 5){
 				lives++;
 				display_lives(lives);
@@ -243,7 +247,60 @@ void play_game(void) {
 					}
 				}
 			}
-			joy_direc = joy_direction();
+
+			if(last_joy_dir >= 0){
+				joy_direc = joy_direction();
+				if(joy_direc >= 0){
+					if(get_current_time() >= last_joy_time + 500){
+						if(get_current_time() > last_joy_repeat + 150){
+							last_joy_repeat = get_current_time();
+						} else {
+							joy_direc = -1;
+						}
+					} else {
+						joy_direc = -1;
+					}
+				}
+			} else if ((joy_direc = joy_direction()) >= 0){
+				last_joy_dir = joy_direc;
+				last_joy_time = get_current_time();
+			}
+			
+			
+			switch(joy_direc){
+				case 0:
+					move_frog_to_right();
+					buzz(15);
+					break;
+				case 1:
+					move_frog_backward();
+					buzz(15);
+					break;
+				case 2:
+					move_frog_forward();
+					buzz(15);
+					break;
+				case 3:
+					move_frog_to_left();
+					buzz(15);
+					break;
+				case 4:
+					move_frog_topleft();
+					buzz(15);
+					break;
+				case 5:
+					move_frog_topright();
+					buzz(15);
+					break;
+				case 6:
+					move_frog_bottomleft();
+					buzz(15);
+					break;
+				case 7:
+					move_frog_bottomright();
+					buzz(15);
+					break;
+			}
 			// Process the input. 
 			if(button==3 || escape_sequence_char=='D' || serial_input=='L' || serial_input=='l') {
 				// Attempt to move left

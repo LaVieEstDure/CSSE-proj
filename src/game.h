@@ -91,4 +91,9 @@ void scroll_out(void);
 void redraw_roads(void);
 void remix_colours(void);
 
+void move_frog_topleft(void);
+void move_frog_topright(void);
+void move_frog_bottomleft(void);
+void move_frog_bottomright(void);
+void remix_data(void);
 #endif /* GAME_H_ */
